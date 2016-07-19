@@ -53,7 +53,9 @@ local function worker(args)
     local function net_update()
         connected = false
         for _, i in pairs(interfaces) do
-            state = awful.util.pread("ip link show "..i.." | awk 'NR==1 {printf \"%s\", $9}'")
+            f = io.popen("ip link show "..i.." | awk 'NR==1 {printf \"%s\", $9}'")
+            state = f:read()
+            f:close()
             if (state == "UP") then
                 connected = true
             end

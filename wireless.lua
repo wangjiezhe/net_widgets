@@ -28,7 +28,9 @@ local function worker(args)
     local net_timer = timer({ timeout = timeout })
     local signal_level = 0
     local function net_update()
-        signal_level = tonumber(awful.util.pread("awk 'NR==3 {printf \"%3.0f\" ,($3/70)*100}' /proc/net/wireless"))
+        f = io.popen("awk 'NR==3 {printf \"%3.0f\" ,($3/70)*100}' /proc/net/wireless")
+        signal_level = tonumber(f:read())
+        f:close()
         if signal_level == nil then
             connected = false
             net_text:set_text(" N/A ")
