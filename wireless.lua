@@ -2,6 +2,7 @@ local wibox         = require("wibox")
 local awful         = require("awful")
 local beautiful     = require("beautiful")
 local naughty       = require("naughty")
+local timer         = (type(timer) == 'table' and timer or require("gears.timer"))
 local module_path = (...):match ("(.+/)[^/]+$") or ""
 
 local wireless = {}
