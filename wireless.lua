@@ -2,7 +2,7 @@ local wibox         = require("wibox")
 local awful         = require("awful")
 local beautiful     = require("beautiful")
 local naughty       = require("naughty")
-local timer         = (type(timer) == 'table' and timer or require("gears.timer"))
+local gears         = require("gears")
 local module_path = (...):match ("(.+/)[^/]+$") or ""
 
 local wireless = {}
@@ -19,19 +19,18 @@ local function worker(args)
     local font          = args.font or beautiful.font
     local popup_signal  = args.popup_signal or false
     local onclick       = args.onclick
-    local widget 	= args.widget == nil and wibox.layout.fixed.horizontal() or args.widget == false and nil or args.widget
-    local indent 	= args.indent or 3
+    local widget        = args.widget == nil and wibox.layout.fixed.horizontal() or args.widget == false and nil or args.widget
+    local indent        = args.indent or 3
 
     local net_icon = wibox.widget.imagebox()
     net_icon:set_image(ICON_DIR.."wireless_na.png")
     local net_text = wibox.widget.textbox()
     net_text:set_text(" N/A ")
-    local net_timer = timer({ timeout = timeout })
     local signal_level = 0
     local function net_update()
-        f = io.popen("awk 'NR==3 {printf \"%3.0f\" ,($3/70)*100}' /proc/net/wireless")
-        signal_level = tonumber(f:read())
-        f:close()
+        awful.spawn.easy_async("awk 'NR==3 {printf \"%3.0f\" ,($3/70)*100}' /proc/net/wireless", function(stdout, stderr, reason, exit_code)
+          signal_level = tonumber( stdout )
+        end)
         if signal_level == nil then
             connected = false
             net_text:set_text(" N/A ")
@@ -52,18 +51,18 @@ local function worker(args)
     end
 
     net_update()
-    net_timer:connect_signal("timeout", net_update)
-    net_timer:start()
-    
+    local timer = gears.timer.start_new( timeout, function () net_update()
+      return true end )
+
     widgets_table["imagebox"]	= net_icon
     widgets_table["textbox"]	= net_text
     if widget then
-	    widget:add(net_icon)
-	    -- Hide the text when we want to popup the signal instead
-	    if not popup_signal then
-		    widget:add(net_text)
-	    end
-	    wireless:attach(widget,{onclick = onclick})
+            widget:add(net_icon)
+            -- Hide the text when we want to popup the signal instead
+            if not popup_signal then
+                    widget:add(net_text)
+            end
+            wireless:attach(widget,{onclick = onclick})
     end
 
 
@@ -75,7 +74,7 @@ local function worker(args)
             local essid   = "N/A"
             local bitrate = "N/A"
             local inet    = "N/A"
-                
+
             -- Use iw/ip
             f = io.popen("iw dev "..interface.." link")
             for line in f:lines() do
@@ -117,21 +116,21 @@ local function worker(args)
 
     local notification = nil
     function wireless:hide()
-	    if notification ~= nil then
-		    naughty.destroy(notification)
-		    notification = nil
-	    end
+            if notification ~= nil then
+                    naughty.destroy(notification)
+                    notification = nil
+            end
     end
 
     function wireless:show(t_out)
-	    wireless:hide()
+            wireless:hide()
 
-	    notification = naughty.notify({
-		    preset = fs_notification_preset,
-		    text = text_grabber(),
-		    timeout = t_out,
+            notification = naughty.notify({
+                    preset = fs_notification_preset,
+                    text = text_grabber(),
+                    timeout = t_out,
             screen = mouse.screen
-	    })
+            })
     end
     return widget or widgets_table
 end
@@ -141,9 +140,9 @@ function wireless:attach(widget, args)
     local onclick = args.onclick
     -- Bind onclick event function
     if onclick then
-	    widget:buttons(awful.util.table.join(
-	    awful.button({}, 1, function() awful.util.spawn(onclick) end)
-	    ))
+            widget:buttons(awful.util.table.join(
+            awful.button({}, 1, function() awful.util.spawn(onclick) end)
+            ))
     end
     widget:connect_signal('mouse::enter', function () wireless:show(0) end)
     widget:connect_signal('mouse::leave', function () wireless:hide() end)
