@@ -140,7 +140,7 @@ function wireless:attach(widget, args)
     local onclick = args.onclick
     -- Bind onclick event function
     if onclick then
-            widget:buttons(awful.util.table.join(
+            widget:buttons(gears.table.join(
             awful.button({}, 1, function() awful.util.spawn(onclick) end)
             ))
     end
