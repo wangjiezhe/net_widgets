@@ -2,7 +2,7 @@ local wibox         = require("wibox")
 local awful         = require("awful")
 local beautiful     = require("beautiful")
 local naughty       = require("naughty")
-local timer         = (type(timer) == 'table' and timer or require("gears.timer"))
+local gears         = require("gears")
 local module_path = (...):match ("(.+/)[^/]+$") or ""
 
 local indicator = {}
@@ -16,15 +16,15 @@ local function worker(args)
     local ICON_DIR      = awful.util.getdir("config").."/"..module_path.."/net_widgets/icons/"
     local timeout       = args.timeout or 5
     local font          = args.font or beautiful.font
-    local onclick       = args.onclick 
-    local hidedisconnected = args.hidedisconnected 
+    local onclick       = args.onclick
+    local hidedisconnected = args.hidedisconnected
 
     local connected = false
     local function text_grabber()
         local msg = ""
         if connected then
             for _, i in pairs(interfaces) do
-                
+
                 local map  = "N/A"
                 local inet = "N/A"
                 f = io.popen("ip addr show "..i)
@@ -35,7 +35,7 @@ local function worker(args)
                     mac  = string.match(line, "link/ether (%x?%x?:%x?%x?:%x?%x?:%x?%x?:%x?%x?:%x?%x?)") or mac
                 end
                 f:close()
-                
+
                 msg =   "<span font_desc=\""..font.."\">"..
                         "┌["..i.."]\n"..
                         "├IP:\t"..inet.."\n"..
@@ -60,48 +60,47 @@ local function worker(args)
             if (state == "UP") then
                 connected = true
             end
-	    if connected then
-		    widget:set_widget(wired)
-	    else
-		    if not hidedisconnected then
-			    widget:set_widget(wired_na)
-		    else
-			    widget:set_widget(nil)
-		    end
-	    end
+            if connected then
+                    widget:set_widget(wired)
+            else
+                    if not hidedisconnected then
+                            widget:set_widget(wired_na)
+                    else
+                            widget:set_widget(nil)
+                    end
+            end
     end
     end
 
     net_update()
 
-    local net_timer = timer({ timeout = timeout })
-    net_timer:connect_signal("timeout", net_update)
-    net_timer:start()
+    local timer = gears.timer.start_new( timeout, function () net_update()
+      return true end)
 
     local notification = nil
     function widget:hide()
-	    if notification ~= nil then
-		    naughty.destroy(notification)
-		    notification = nil
-	    end
+            if notification ~= nil then
+                    naughty.destroy(notification)
+                    notification = nil
+            end
     end
 
     function widget:show(t_out)
-	    widget:hide()
+            widget:hide()
 
-	    notification = naughty.notify({
-		    preset = fs_notification_preset,
-		    text = text_grabber(),
-		    timeout = t_out,
+            notification = naughty.notify({
+                    preset = fs_notification_preset,
+                    text = text_grabber(),
+                    timeout = t_out,
             screen = mouse.screen
-	    })
+            })
     end
 
     -- Bind onclick event function
     if onclick then
-	    widget:buttons(awful.util.table.join(
-	    awful.button({}, 1, function() awful.util.spawn(onclick) end)
-	    ))
+            widget:buttons(awful.util.table.join(
+            awful.button({}, 1, function() awful.util.spawn(onclick) end)
+            ))
     end
 
     widget:connect_signal('mouse::enter', function () widget:show(0) end)
