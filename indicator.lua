@@ -99,7 +99,7 @@ local function worker(args)
     -- Bind onclick event function
     if onclick then
             widget:buttons(gears.table.join(
-            awful.button({}, 1, function() awful.util.spawn(onclick) end)
+            awful.button({}, 1, function() awful.spawn(onclick) end)
             ))
     end
 
